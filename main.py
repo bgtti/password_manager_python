@@ -3,6 +3,7 @@ from tkinter import messagebox
 import string
 import random
 import pyperclip
+import json
 
 window = tkinter.Tk()
 window.title("Password Manager Python")
@@ -27,9 +28,27 @@ input_website.grid(column=2, row=2)
 input_website.focus()
 
 def search_btn():
-    print("here")
+    account_searched = input_website.get()
+    if len(account_searched) == 0:
+        warn_user = messagebox.showinfo(
+            title="Empty field", message="Type the name of the account in order for information be retrieved.")
+    else:
+        try:
+            with open("data.json", "r") as data_file:
+                data = json.load(data_file)  # reading old data
+        except FileNotFoundError:
+            messagebox.showwarning(title="Error", message="No data file on record.")
+        else:
+            if account_searched in data:
+                the_email = data[account_searched]["email"]
+                the_password = data[account_searched]["password"]
+                messagebox.showinfo(
+                    title=f"Account information for {account_searched}", message=f"Email: {the_email}\nPassword: {the_password}")
+            else:
+                messagebox.showinfo(
+                    title="Information not found", message=f"No record for {account_searched} was found.")
 
-btn_search = tkinter.Button(text="Search", fg="black", bg="light slate gray", command="search_btn", width=18)
+btn_search = tkinter.Button(text="Search", fg="black", bg="light slate gray", command=search_btn, width=18)
 btn_search.grid(column=3, row=2)
 
 # Email/username
@@ -76,15 +95,30 @@ def add_btn():
     the_site = input_website.get()
     the_mail = input_email.get()
     the_pwd = input_password.get()
+    new_data = {
+        the_site: {
+            "email": the_mail,
+            "password": the_pwd
+        }
+    }
     
     if len(the_site) == 0 or len(the_mail) == 0 or len(the_mail) == 0:
         user_warning = messagebox.showinfo(title="Empty fields", message="Make sure not to leave any field empty.")
     else:
         user_confirmation = messagebox.askokcancel(
-            title="Check information before saving", message=f"Website: {the_site}\nEmail/username: {the_mail}\nPassword: {the_pwd}\nClick 'ok' to save.")
+            title="Check information before saving", message=f"Website: {the_site}\nEmail/username: {the_mail}\nPassword: {the_pwd}\n\nClick 'ok' to save.")
         if user_confirmation:
-            with open("pmp.txt", "a") as data_file:
-                data_file.write(f"{the_site}|{the_mail}|{the_pwd}\n")
+            try:
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file) # reading old data
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)  # if no file, create a new json file and add new_data
+            else:
+                data.update(new_data) # updating old data with new data
+                with open("data.json", "w") as data_file:
+                    json.dump(data, data_file, indent=4) # saving updated file
+            finally:
                 input_website.delete(0, tkinter.END)
                 input_email.delete(0, tkinter.END)
                 input_password.delete(0, tkinter.END)
